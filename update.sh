@@ -34,9 +34,9 @@ echo "Applying any new database migrations..."
 # Export both the standard and Vercel-specific database URLs
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
 export POSTGRES_PRISMA_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
-export POSTGRES_URL_NON_POOLING="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
+export POSTGRES_PRISMA_URL_NON_POOLING="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
 
-# Let Prisma find the schema directory automatically
+# Push the schema (it will now find all variables)
 npx prisma db push
 
 # --- 4. CLOSE TUNNEL ---

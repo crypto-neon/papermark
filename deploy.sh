@@ -50,12 +50,12 @@ sleep 5
 
 # --- 4. INITIALIZE SCHEMA ---
 echo "Pushing database schema to Cloud SQL..."
-# Export both the standard and Vercel-specific database URLs
+# Use the same connection string for all three variables
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
 export POSTGRES_PRISMA_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
-export POSTGRES_URL_NON_POOLING="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
+export POSTGRES_PRISMA_URL_NON_POOLING="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
 
-# Let Prisma find the schema automatically
+# Push the schema (it will now find all variables)
 npx prisma db push
 
 # --- 5. SEED INITIAL USER ---
