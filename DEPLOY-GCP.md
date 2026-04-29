@@ -173,3 +173,39 @@ When you want to pull the latest code from GitHub and deploy it:
 *   **Database Safety:** You control when migrations happen via the script.
 *   **Zero Local Setup:** No need to install Node, Docker, or Proxy locally.
 *   **Visibility:** Instant access to logs in the Cloud Shell if something fails.
+
+---
+
+## Phase 7: Connecting Your Subdomain
+Google Cloud Run makes it very easy to attach your custom domain and will automatically generate a free SSL (HTTPS) certificate for you.
+
+1. **Start the Mapping:**
+   * Go to **Cloud Run** in the GCP Console.
+   * Click on your `papermark` service.
+   * Near the top, click the **Integrations** tab, then click **Add Integration**.
+   * Select **Custom Domains - Google Cloud Load Balancing** (or if you see a classic **Manage Custom Domains** option at the very top of the Cloud Run page, click that—it's faster).
+
+2. **Configure the Domain:**
+   * Select the `papermark` service.
+   * If your domain isn't verified in Google yet, it will ask you to verify ownership via Google Webmaster Central (a quick DNS TXT record).
+   * Enter your chosen subdomain (e.g., `documents.yourcompany.com`).
+   * Click **Submit** or **Continue**.
+
+3. **Update your DNS:**
+   * Google will now display a specific **DNS Record** (usually a `CNAME` pointing to `ghs.googlehosted.com`, or an `A` record with an IP address).
+   * Open a new tab and go to your domain registrar (e.g., Cloudflare, GoDaddy, Namecheap).
+   * Add a new DNS record matching exactly what Google provided.
+
+4. **Wait for the Magic:**
+   * It can take anywhere from 15 minutes to an hour for the internet to recognize the new domain and for Google to issue your SSL certificate. 
+
+---
+
+## Phase 8: The First Login
+Once your domain is live and showing the secure padlock icon, it is time to access your data room.
+
+1. Go to your new URL (e.g., `https://documents.yourcompany.com`).
+2. Click **Sign In**.
+3. Enter the exact Admin email address you provided during the Cloud Shell deployment script.
+4. Check your email inbox. Resend will have delivered a "Magic Link."
+5. Click the link, and you will be logged into your new, completely private instance of Papermark!
