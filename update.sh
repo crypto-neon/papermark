@@ -31,8 +31,13 @@ sleep 5
 
 # --- 3. APPLY DATABASE CHANGES ---
 echo "Applying any new database migrations..."
+# Export both the standard and Vercel-specific database URLs
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
-npx prisma db push --schema=./prisma/schema.prisma
+export POSTGRES_PRISMA_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
+export POSTGRES_URL_NON_POOLING="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
+
+# Let Prisma find the schema directory automatically
+npx prisma db push
 
 # --- 4. CLOSE TUNNEL ---
 echo "Closing Cloud SQL Proxy..."
