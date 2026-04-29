@@ -79,6 +79,7 @@ if gcloud run deploy $SERVICE_NAME \
   --project $GCP_PROJECT \
   --region $REGION \
   --source . \
+  --verbosity=debug \
   --allow-unauthenticated \
   --add-cloudsql-instances $CLOUD_SQL_INSTANCE \
   --set-secrets "/secrets/dataroom=dataroom:latest" \

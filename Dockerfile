@@ -1,30 +1,31 @@
-# Use a lightweight Node.js image
 FROM node:20-alpine
 
-# Install OpenSSL and libc6-compat (Required by Prisma on Alpine Linux)
+# Necessary for Prisma to run on Alpine Linux
 RUN apk add --no-cache libc6-compat openssl
 
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy everything from your project into the container
+# Improve build speed by copying only package files first
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install dependencies without running the "postinstall" prisma generate yet
+RUN npm install --ignore-scripts
+
+# Now copy the rest of the code
 COPY . .
 
-# Install dependencies
-RUN npm install
-
-# Generate the Prisma Client using the root schema
+# Manually generate the client from the modular schema folder
 RUN npx prisma generate
 
-# Build the Next.js application
+# Build the Next.js app
+# We use dummy variables here to satisfy the build-time check
+ENV POSTGRES_PRISMA_URL="postgresql://user:pass@localhost:5432/db"
+ENV POSTGRES_PRISMA_URL_NON_POOLING="postgresql://user:pass@localhost:5432/db"
 RUN npm run build
 
-# Set production environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
-
-# Expose the port Cloud Run expects
 EXPOSE 3000
 
-# Start the application
 CMD ["npm", "start"]
