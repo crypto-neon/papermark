@@ -14,10 +14,16 @@ fi
 echo "Installing dependencies (this may take a minute)..."
 npm install --quiet
 
-# --- 2. AUTOMATIC DATABASE CREATION ---
+# --- 2. SILENT DATABASE CHECK & CREATION ---
 INSTANCE_ID=$(echo $CLOUD_SQL_INSTANCE | awk -F: '{print $NF}')
-echo "Ensuring database 'papermark' exists in instance '$INSTANCE_ID'..."
-gcloud sql databases create papermark --instance=$INSTANCE_ID --project=$GCP_PROJECT || echo "Database 'papermark' already exists."
+DB_EXISTS=$(gcloud sql databases list --instance=$INSTANCE_ID --format="value(name)" --filter="name=papermark")
+
+if [ "$DB_EXISTS" == "papermark" ]; then
+  echo "Database 'papermark' already exists, skipping creation."
+else
+  echo "Creating database 'papermark' in instance '$INSTANCE_ID'..."
+  gcloud sql databases create papermark --instance=$INSTANCE_ID --project=$GCP_PROJECT
+fi
 
 # --- 3. START DATABASE TUNNEL ---
 echo "Opening Cloud SQL Proxy..."
@@ -28,12 +34,12 @@ sleep 5
 # --- 4. INITIALIZE SCHEMA ---
 echo "Pushing database schema..."
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
-# We explicitly point to the monorepo schema path
+# Explicit path for the monorepo schema
 npx prisma db push --schema=./apps/web/prisma/schema.prisma
 
 # --- 5. SEED INITIAL USER ---
 echo "Seeding admin user..."
-# We point to the web folder where the prisma client lives
+# Points to the web folder where the prisma client lives after install
 node -e "
 const { PrismaClient } = require('./apps/web/node_modules/@prisma/client');
 const prisma = new PrismaClient();
@@ -53,7 +59,6 @@ kill $PROXY_PID
 
 # --- 7. BUILD & DEPLOY TO CLOUD RUN ---
 echo "Deploying to Google Cloud Run ($SERVICE_NAME)..."
-# Corrected flags: --set-build-env-vars and --set-env-vars
 gcloud run deploy $SERVICE_NAME \
   --project $GCP_PROJECT \
   --region $REGION \
