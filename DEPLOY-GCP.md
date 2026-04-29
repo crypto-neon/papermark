@@ -149,17 +149,23 @@ Copy `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SI
 1.  **Open Cloud Shell:** Click the `>_` icon in the GCP top bar.
 2.  **Deploy in one step:** Copy and paste this single line into the Cloud Shell and hit Enter. It will download the code, set the permissions, and start the deployment automatically:
     ```bash
-    git clone [https://github.com/crypto-neon/papermark.git](https://github.com/crypto-neon/papermark.git) && cd papermark && chmod +x deploy.sh update.sh && ./deploy.sh
+    git clone https://github.com/crypto-neon/papermark.git && cd papermark && chmod +x deploy.sh update.sh && ./deploy.sh
     ```
 
 ---
 
 ## Phase 6: Future Updates
-To update code from GitHub:
+When you want to pull the latest code from GitHub and deploy it:
+
 1.  Open **Cloud Shell**.
-2.  `cd your-repo-name`
-3.  `git pull origin main`
-4.  `./update.sh`
+2.  Navigate to your folder:
+    ```bash
+    cd papermark
+    ```
+3.  Run the update script:
+    ```bash
+    ./update.sh
+    ```
 
 ---
 
