@@ -84,7 +84,8 @@ kill $PROXY_PID
 
 # --- 7. BUILD & DEPLOY TO CLOUD RUN ---
 echo "Deploying to Google Cloud Run ($SERVICE_NAME)..."
-gcloud run deploy $SERVICE_NAME \
+
+if gcloud run deploy $SERVICE_NAME \
   --project $GCP_PROJECT \
   --region $REGION \
   --source . \
@@ -92,6 +93,15 @@ gcloud run deploy $SERVICE_NAME \
   --add-cloudsql-instances $CLOUD_SQL_INSTANCE \
   --set-secrets "/secrets/dataroom=dataroom:latest" \
   --set-build-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_TINYBIRD_TRACKER_URL=$NEXT_PUBLIC_TINYBIRD_TRACKER_URL,NEXT_PUBLIC_UPLOAD_TRANSPORT=$NEXT_PUBLIC_UPLOAD_TRANSPORT" \
-  --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_TINYBIRD_TRACKER_URL=$NEXT_PUBLIC_TINYBIRD_TRACKER_URL,NEXT_PUBLIC_UPLOAD_TRANSPORT=$NEXT_PUBLIC_UPLOAD_TRANSPORT"
-
-echo "Deployment Complete!"
+  --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_TINYBIRD_TRACKER_URL=$NEXT_PUBLIC_TINYBIRD_TRACKER_URL,NEXT_PUBLIC_UPLOAD_TRANSPORT=$NEXT_PUBLIC_UPLOAD_TRANSPORT"; then
+  
+  echo "=========================================="
+  echo "✅ DEPLOYMENT COMPLETE SUCESSFULLY!"
+  echo "=========================================="
+else
+  echo "=========================================="
+  echo "❌ ERROR: Cloud Run Deployment Failed."
+  echo "Please check the Cloud Build logs URL printed above for details."
+  echo "=========================================="
+  exit 1
+fi
