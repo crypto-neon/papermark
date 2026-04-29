@@ -1,12 +1,23 @@
 #!/bin/bash
 
-# --- 0. PRE-FLIGHT CHECK ---
-# Ensure we are in the root of the repo
+# --- 0. PRE-FLIGHT CHECK & USER INPUT ---
 if [ ! -f "package.json" ]; then
     echo "Error: Script must be run from the root of the papermark folder."
     exit 1
 fi
 
+echo "=========================================="
+echo "   Papermark Deployment Setup"
+echo "=========================================="
+# Ask the user for their email address
+read -p "Enter the email address for your Admin account (required for login): " ADMIN_EMAIL
+
+if [ -z "$ADMIN_EMAIL" ]; then
+  echo "Error: Admin email cannot be empty. Deployment aborted."
+  exit 1
+fi
+
+echo ""
 echo "Fetching configuration directly from GCP Secret Manager..."
 set -a
 source <(gcloud secrets versions access latest --secret="dataroom")
@@ -18,7 +29,6 @@ if [ -z "$GCP_PROJECT" ]; then
 fi
 
 # --- 1. INSTALL DEPENDENCIES ---
-# Required to build Prisma tools in the temporary Cloud Shell
 echo "Installing dependencies (this takes a moment in Cloud Shell)..."
 npm install --quiet
 
@@ -42,23 +52,26 @@ sleep 5
 # --- 4. INITIALIZE SCHEMA ---
 echo "Pushing database schema to Cloud SQL..."
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
-# Explicit path for Papermark Monorepo
 npx prisma db push --schema=./apps/web/prisma/schema.prisma
 
 # --- 5. SEED INITIAL USER ---
-echo "Seeding admin user: pr@ivault.io..."
-# Explicit path to the web package's prisma client
+echo "Seeding admin user: $ADMIN_EMAIL..."
+# Export the email so the Node script can read it safely
+export SEED_EMAIL="$ADMIN_EMAIL"
+
 node -e "
 const { PrismaClient } = require('./apps/web/node_modules/@prisma/client');
 const prisma = new PrismaClient();
+const adminEmail = process.env.SEED_EMAIL;
+
 async function seed() {
   try {
     await prisma.user.upsert({
-      where: { email: 'pr@ivault.io' },
+      where: { email: adminEmail },
       update: {},
-      create: { email: 'pr@ivault.io', name: 'Admin' }
+      create: { email: adminEmail, name: 'Admin' }
     });
-    console.log('Successfully seeded pr@ivault.io');
+    console.log('Successfully seeded ' + adminEmail);
   } catch (e) {
     console.error('Seeding error:', e);
   }
