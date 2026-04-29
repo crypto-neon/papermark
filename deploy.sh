@@ -9,7 +9,7 @@ fi
 echo "=========================================="
 echo "   Papermark Deployment Setup"
 echo "=========================================="
-read -p "Enter the email address for your Admin account (required for login): " ADMIN_EMAIL
+read -p "Enter the email for your Papermark Dataroom Admin: " ADMIN_EMAIL
 
 if [ -z "$ADMIN_EMAIL" ]; then
   echo "Error: Admin email cannot be empty. Deployment aborted."
