@@ -32,7 +32,7 @@ sleep 5
 # --- 3. APPLY DATABASE CHANGES ---
 echo "Applying any new database migrations..."
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
-npx prisma db push --schema=./apps/web/prisma/schema.prisma
+npx prisma db push --schema=./prisma/schema.prisma
 
 # --- 4. CLOSE TUNNEL ---
 echo "Closing Cloud SQL Proxy..."
@@ -40,11 +40,21 @@ kill $PROXY_PID
 
 # --- 5. REDEPLOY TO CLOUD RUN ---
 echo "Updating Cloud Run service ($SERVICE_NAME)..."
-gcloud run deploy $SERVICE_NAME \
+
+if gcloud run deploy $SERVICE_NAME \
   --project $GCP_PROJECT \
   --region $REGION \
   --source . \
   --set-build-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_TINYBIRD_TRACKER_URL=$NEXT_PUBLIC_TINYBIRD_TRACKER_URL,NEXT_PUBLIC_UPLOAD_TRANSPORT=$NEXT_PUBLIC_UPLOAD_TRANSPORT" \
-  --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_TINYBIRD_TRACKER_URL=$NEXT_PUBLIC_TINYBIRD_TRACKER_URL,NEXT_PUBLIC_UPLOAD_TRANSPORT=$NEXT_PUBLIC_UPLOAD_TRANSPORT"
-
-echo "Update Complete!"
+  --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_TINYBIRD_TRACKER_URL=$NEXT_PUBLIC_TINYBIRD_TRACKER_URL,NEXT_PUBLIC_UPLOAD_TRANSPORT=$NEXT_PUBLIC_UPLOAD_TRANSPORT"; then
+  
+  echo "=========================================="
+  echo "✅ UPDATE COMPLETE SUCCESSFULLY!"
+  echo "=========================================="
+else
+  echo "=========================================="
+  echo "❌ ERROR: Cloud Run Update Failed."
+  echo "Please check the Cloud Build logs URL printed above for details."
+  echo "=========================================="
+  exit 1
+fi

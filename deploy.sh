@@ -9,7 +9,6 @@ fi
 echo "=========================================="
 echo "   Papermark Deployment Setup"
 echo "=========================================="
-# Ask the user for their email address
 read -p "Enter the email address for your Admin account (required for login): " ADMIN_EMAIL
 
 if [ -z "$ADMIN_EMAIL" ]; then
@@ -52,15 +51,14 @@ sleep 5
 # --- 4. INITIALIZE SCHEMA ---
 echo "Pushing database schema to Cloud SQL..."
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
-npx prisma db push --schema=./apps/web/prisma/schema.prisma
+npx prisma db push --schema=./prisma/schema.prisma
 
 # --- 5. SEED INITIAL USER ---
 echo "Seeding admin user: $ADMIN_EMAIL..."
-# Export the email so the Node script can read it safely
 export SEED_EMAIL="$ADMIN_EMAIL"
 
 node -e "
-const { PrismaClient } = require('./apps/web/node_modules/@prisma/client');
+const { PrismaClient } = require('./node_modules/@prisma/client');
 const prisma = new PrismaClient();
 const adminEmail = process.env.SEED_EMAIL;
 
@@ -96,7 +94,7 @@ if gcloud run deploy $SERVICE_NAME \
   --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_TINYBIRD_TRACKER_URL=$NEXT_PUBLIC_TINYBIRD_TRACKER_URL,NEXT_PUBLIC_UPLOAD_TRANSPORT=$NEXT_PUBLIC_UPLOAD_TRANSPORT"; then
   
   echo "=========================================="
-  echo "✅ DEPLOYMENT COMPLETE SUCESSFULLY!"
+  echo "✅ DEPLOYMENT COMPLETE SUCCESSFULLY!"
   echo "=========================================="
 else
   echo "=========================================="

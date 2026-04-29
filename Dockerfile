@@ -13,8 +13,8 @@ COPY . .
 # Install dependencies
 RUN npm install
 
-# Generate the Prisma Client using the monorepo schema path
-RUN npx prisma generate --schema=./apps/web/prisma/schema.prisma
+# Generate the Prisma Client using the root schema
+RUN npx prisma generate
 
 # Build the Next.js application
 RUN npm run build
@@ -26,5 +26,5 @@ ENV PORT=3000
 # Expose the port Cloud Run expects
 EXPOSE 3000
 
-# Start the application (Standard for Turborepo/Next.js monorepos)
-CMD ["npm", "run", "start"]
+# Start the application
+CMD ["npm", "start"]
