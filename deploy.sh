@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# --- 0. PRE-FLIGHT CHECK ---
+# Ensure we are in the root of the repo
+if [ ! -f "package.json" ]; then
+    echo "Error: Script must be run from the root of the papermark folder."
+    exit 1
+fi
+
 echo "Fetching configuration directly from GCP Secret Manager..."
 set -a
 source <(gcloud secrets versions access latest --secret="dataroom")
@@ -10,8 +17,9 @@ if [ -z "$GCP_PROJECT" ]; then
   exit 1
 fi
 
-# --- 1. INSTALL DEPENDENCIES (Required for DB Tools) ---
-echo "Installing dependencies (this may take a minute)..."
+# --- 1. INSTALL DEPENDENCIES ---
+# Required to build Prisma tools in the temporary Cloud Shell
+echo "Installing dependencies (this takes a moment in Cloud Shell)..."
 npm install --quiet
 
 # --- 2. SILENT DATABASE CHECK & CREATION ---
@@ -32,26 +40,30 @@ PROXY_PID=$!
 sleep 5 
 
 # --- 4. INITIALIZE SCHEMA ---
-echo "Pushing database schema..."
+echo "Pushing database schema to Cloud SQL..."
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
-# Explicit path for the monorepo schema
+# Explicit path for Papermark Monorepo
 npx prisma db push --schema=./apps/web/prisma/schema.prisma
 
 # --- 5. SEED INITIAL USER ---
-echo "Seeding admin user..."
-# Points to the web folder where the prisma client lives after install
+echo "Seeding admin user: pr@ivault.io..."
+# Explicit path to the web package's prisma client
 node -e "
 const { PrismaClient } = require('./apps/web/node_modules/@prisma/client');
 const prisma = new PrismaClient();
 async function seed() {
-  await prisma.user.upsert({
-    where: { email: 'pr@ivault.io' },
-    update: {},
-    create: { email: 'pr@ivault.io', name: 'Admin' }
-  });
-  console.log('Successfully seeded pr@ivault.io');
+  try {
+    await prisma.user.upsert({
+      where: { email: 'pr@ivault.io' },
+      update: {},
+      create: { email: 'pr@ivault.io', name: 'Admin' }
+    });
+    console.log('Successfully seeded pr@ivault.io');
+  } catch (e) {
+    console.error('Seeding error:', e);
+  }
 }
-seed().catch(console.error).finally(() => prisma.\$disconnect());
+seed().finally(() => prisma.\$disconnect());
 "
 
 # --- 6. CLOSE DATABASE TUNNEL ---

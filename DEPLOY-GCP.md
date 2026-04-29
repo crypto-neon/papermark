@@ -147,15 +147,9 @@ Copy `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SI
 
 ## Phase 5: The First Launch (Cloud Shell)
 1.  **Open Cloud Shell:** Click the `>_` icon in the GCP top bar.
-2.  **Clone Repository:**
+2.  **Deploy in one step:** Copy and paste this single line into the Cloud Shell and hit Enter. It will download the code, set the permissions, and start the deployment automatically:
     ```bash
-    git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
-    cd your-repo-name
-    ```
-3.  **Deploy:**
-    ```bash
-    chmod +x deploy.sh update.sh
-    ./deploy.sh
+    git clone [https://github.com/crypto-neon/papermark.git](https://github.com/crypto-neon/papermark.git) && cd papermark && chmod +x deploy.sh update.sh && ./deploy.sh
     ```
 
 ---
