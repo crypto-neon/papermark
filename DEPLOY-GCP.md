@@ -1,0 +1,175 @@
+# Papermark - GCP Cloud Run Deployment Guide
+
+This guide explains how to deploy a private, professional instance of **Papermark** on Google Cloud Platform (GCP).
+
+Unlike the standard setup, this version is designed for **Zero-Local-State**. This means no data is stored on your server or your computer; everything lives securely in professional cloud services, making your installation easy to update and impossible to lose.
+
+---
+
+## 🏗 Architecture Overview
+To keep the app fast and secure, we use a "best-in-class" stack:
+*   **The Brain (Compute):** Google Cloud Run. It runs the app only when someone visits it, saving you money.
+*   **The Memory (Database):** Google Cloud SQL (Postgres). A managed database that handles your user data and document metadata.
+*   **The Filing Cabinet (Storage):** Google Cloud Storage. Your PDFs and documents live here, encrypted and safe.
+*   **The Vault (Secrets):** GCP Secret Manager. Instead of a local .env file, we store every password and key in a single, encrypted vault in the cloud.
+*   **The Postman (Email):** Resend. Handles "Magic Links" so you don't need to manage passwords.
+*   **The Traffic Control (Queues):** Upstash QStash & Redis. Manages background tasks and ensures large file uploads don't fail.
+*   **The Dashboard (Analytics):** Tinybird. Tracks who viewed your documents and for how long.
+
+---
+
+## 🔍 Why is this different from Vercel? (Specifics)
+If you are used to Vercel or local hosting, GCP requires a slightly different mindset:
+
+*   **Statelessness:** You cannot save files "to the folder" in Cloud Run. They will disappear. Everything must go to the Cloud Storage bucket.
+*   **The Secret Manager is the "Source of Truth":** We do not use a local .env file for production. When you run our deployment scripts, they pull the latest configuration directly from your GCP Vault.
+*   **The Database Tunnel:** Because your database is locked down for security, your computer cannot talk to it directly. Our scripts use a "Proxy" to create a temporary, secure tunnel whenever you need to update the database structure.
+*   **S3-Compatible Storage:** While we use Google Cloud Storage, we configure it to "speak" the S3 language so that Papermark’s built-in file handling works perfectly without complex code changes.
+
+---
+
+## Phase 1: External Services Provisioning
+Before building in Google Cloud, collect the "keys to the house" from these providers. 
+
+> **Important:** Create a temporary Notepad file to copy and paste these keys as you go. **Never share this file.**
+
+### 1. Resend (Email/Auth)
+*   Create a free account at [Resend.com](https://resend.com).
+*   Add and verify your domain in the **Domains** section.
+*   Generate an API Key with "Full Access."
+*   **Save as:** `RESEND_API_KEY`
+
+### 2. Tinybird (Analytics)
+*   Create an account at [Tinybird.co](https://tinybird.co).
+*   Create a new Workspace.
+*   Find your **Admin Token** in the dashboard.
+*   Note your **Region** from the URL (e.g., `europe-west2`).
+*   **Save as:** `TINYBIRD_TOKEN`
+
+### 3. Upstash (Queues & Rate Limiting)
+*   Create an account at [Upstash.com](https://upstash.com).
+*   **Redis:** Create a Database. Copy the **REST URL** and **REST Token**.
+*   **QStash:** Go to the QStash tab. Copy the **URL**, **Token**, **Current Signing Key**, and **Next Signing Key**.
+*   **Save as:** `UPSTASH_REDIS_...` and `QSTASH_...`
+
+### 4. Security Secrets
+Open your Terminal and run `openssl rand -base64 32` three separate times.
+*   **Save as:**
+    1. `NEXTAUTH_SECRET`
+    2. `NEXT_PRIVATE_DOCUMENT_PASSWORD_KEY`
+    3. `NEXT_PRIVATE_VERIFICATION_SECRET`
+
+---
+
+## Phase 2: GCP Infrastructure Setup
+
+### 1. Cloud SQL (The Database)
+*   **Create Instance:** Search for **SQL**, choose **PostgreSQL**.
+*   **ID:** `dataroom`.
+*   **Password:** Set a strong password for the `postgres` user. **Save for Section 0 & 3.**
+*   **Config:** Select **Cloud SQL Enterprise** -> **Sandbox** preset.
+*   **Connections:** Select **Public IP**. Leave "Authorized Networks" **blank**.
+*   **Security:** Set **SSL Mode** to `Allow only SSL connections`.
+*   **Connection Name:** Find this on the Overview page (e.g., `project-id:region:dataroom`). **Save for Section 0 & 3.**
+
+### 2. Cloud Storage (The File Cabinet)
+*   **Create Bucket:** Search for **Buckets**.
+*   **Name:** Give it a unique, generic name (e.g., `company-document-vault`).
+*   **Class:** **Standard**.
+*   **Access Control:** **Uniform**.
+
+### 3. Isolated Storage Keys
+1.  Search for **Service Accounts**, create one named `papermark-storage-sa`.
+2.  In your **Bucket > Permissions**, click **Grant Access**. Add the service account email with the role **Storage Object Admin**.
+3.  Go to **Cloud Storage > Settings > Interoperability**. Create a key for the service account.
+4.  **Save as:** `NEXT_PRIVATE_UPLOAD_ACCESS_KEY_ID` (starts with `GOOG`) and `NEXT_PRIVATE_UPLOAD_SECRET_ACCESS_KEY`.
+
+### 4. Enable Required APIs
+Search for and enable:
+*   **Cloud SQL Admin API**
+*   **Secret Manager API**
+*   **Cloud Run Admin API**
+
+---
+
+## Phase 3: Assembling your Configuration
+Assemble these into your `dataroom` secret payload. 
+
+### Section 0: Deployment Variables
+*   `GCP_PROJECT`: Your Project ID.
+*   `REGION`: Your chosen region (e.g., `europe-west3`).
+*   `SERVICE_NAME`: `papermark`.
+*   `CLOUD_SQL_INSTANCE`: The connection name from Phase 2.
+*   `DB_USER`: `postgres`.
+*   `DB_PASS`: Your database password.
+
+### Section 1: Core Application URLs
+Use your full subdomain (e.g., `https://documents.yourcompany.com`) for:
+*   `NEXT_PUBLIC_APP_URL`
+*   `NEXTAUTH_URL`
+*   `NEXT_PUBLIC_BASE_URL`
+*   `NEXT_PUBLIC_MARKETING_URL`
+*   `NEXT_PUBLIC_APP_BASE_HOST`: Just the domain (e.g., `documents.yourcompany.com`).
+
+### Section 2: Security & Encryption
+The three random strings from Phase 1.
+
+### Section 3: Database (Socket Format)
+`postgresql://[USER]:[PASSWORD]@localhost/papermark?host=/cloudsql/[CONNECTION_NAME]`
+
+### Section 4: Storage (GCS S3 API)
+*   `NEXT_PUBLIC_UPLOAD_TRANSPORT`: `s3`
+*   `NEXT_PRIVATE_UPLOAD_BUCKET`: Your bucket name.
+*   `NEXT_PRIVATE_UPLOAD_DISTRIBUTION_HOST`: `[bucket-name].storage.googleapis.com`
+*   `NEXT_PRIVATE_UPLOAD_ENDPOINT`: `https://storage.googleapis.com`
+*   `NEXT_PRIVATE_UPLOAD_REGION`: `auto`
+*   `NEXT_PRIVATE_UPLOAD_ACCESS_KEY_ID`: Your `GOOG...` key.
+*   `NEXT_PRIVATE_UPLOAD_SECRET_ACCESS_KEY`: Your secret key.
+
+### Section 5: Email (Resend)
+`RESEND_API_KEY`: From Phase 1.
+
+### Section 6: Analytics (Tinybird)
+*   `TINYBIRD_TOKEN`: Admin Token.
+*   `NEXT_PUBLIC_TINYBIRD_TRACKER_URL`: (e.g., `https://api.gcp-eu-west2.tinybird.co` for EU).
+
+### Section 7: Queues & Rate Limiting (Upstash)
+Copy `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`, `UPSTASH_REDIS_REST_LOCKER_URL`, and `UPSTASH_REDIS_REST_LOCKER_TOKEN` from the Upstash consoles.
+
+---
+
+## Phase 4: Storing Secrets in GCP
+1.  **Create Secret:** Search for **Secret Manager**, create a secret named `dataroom`.
+2.  **Value:** Paste your entire assembled configuration.
+3.  **Grant Access:** In the secret's **Permissions** tab, add your **Compute Engine default service account** (`...-compute@developer.gserviceaccount.com`) as a **Secret Manager Secret Accessor**.
+
+---
+
+## Phase 5: The First Launch (Cloud Shell)
+1.  **Open Cloud Shell:** Click the `>_` icon in the GCP top bar.
+2.  **Clone Repository:**
+    ```bash
+    git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
+    cd your-repo-name
+    ```
+3.  **Deploy:**
+    ```bash
+    chmod +x deploy.sh update.sh
+    ./deploy.sh
+    ```
+
+---
+
+## Phase 6: Future Updates
+To update code from GitHub:
+1.  Open **Cloud Shell**.
+2.  `cd your-repo-name`
+3.  `git pull origin main`
+4.  `./update.sh`
+
+---
+
+## Why this is better than "Automatic" updates
+*   **Database Safety:** You control when migrations happen via the script.
+*   **Zero Local Setup:** No need to install Node, Docker, or Proxy locally.
+*   **Visibility:** Instant access to logs in the Cloud Shell if something fails.
