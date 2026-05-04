@@ -22,7 +22,7 @@ const nextConfig = {
         has: [
           {
             type: "host",
-            value: process.env.NEXT_PUBLIC_APP_BASE_HOST,
+            value: process.env.NEXT_PUBLIC_APP_BASE_HOST || ".*",
           },
         ],
       },
