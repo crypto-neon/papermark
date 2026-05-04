@@ -18,20 +18,32 @@ COPY . .
 # Manually generate the client from the modular schema folder
 RUN npx prisma generate
 
-# Build the Next.js app
-# We use dummy variables here to satisfy the build-time checks
+# --- DUMMY VARIABLES TO BYPASS NEXT.JS BUILD CHECKS ---
+# Database (Required for Prisma to compile)
 ENV POSTGRES_PRISMA_URL="postgresql://user:pass@localhost:5432/db"
 ENV POSTGRES_PRISMA_URL_NON_POOLING="postgresql://user:pass@localhost:5432/db"
 
-# Add these new dummy variables to bypass the Upstash and Hanko checks
-ENV QSTASH_TOKEN="dummy_token"
+# The hidden variables (Not in their .env.example)
+ENV OPENAI_API_KEY="dummy_openai"
+ENV SLACK_CLIENT_ID="dummy_slack"
+ENV SLACK_CLIENT_SECRET="dummy_slack"
+
+# The documented variables from their .env.example
+ENV NEXTAUTH_SECRET="dummy_secret"
+ENV QSTASH_TOKEN="dummy_qstash"
+ENV QSTASH_CURRENT_SIGNING_KEY="dummy_qstash"
+ENV QSTASH_NEXT_SIGNING_KEY="dummy_qstash"
 ENV UPSTASH_REDIS_REST_URL="https://dummy.upstash.io"
-ENV UPSTASH_REDIS_REST_TOKEN="dummy_token"
-ENV HANKO_API_KEY="dummy_key"
-ENV NEXT_PUBLIC_HANKO_TENANT_ID="dummy_id"
-ENV OPENAI_API_KEY="dummy_key"
-ENV SLACK_CLIENT_ID="dummy_id"
-ENV SLACK_CLIENT_SECRET="dummy_secret"
+ENV UPSTASH_REDIS_REST_TOKEN="dummy_upstash"
+ENV UPSTASH_REDIS_REST_LOCKER_URL="https://dummy.upstash.io"
+ENV UPSTASH_REDIS_REST_LOCKER_TOKEN="dummy_upstash"
+ENV HANKO_API_KEY="dummy_hanko"
+ENV NEXT_PUBLIC_HANKO_TENANT_ID="dummy_hanko"
+ENV RESEND_API_KEY="dummy_resend"
+ENV TINYBIRD_TOKEN="dummy_tinybird"
+ENV TRIGGER_SECRET_KEY="dummy_trigger"
+ENV NEXT_PRIVATE_DOCUMENT_PASSWORD_KEY="dummy_secret"
+ENV NEXT_PRIVATE_VERIFICATION_SECRET="dummy_secret"
 
 RUN npm run build
 
