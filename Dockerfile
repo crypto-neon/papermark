@@ -30,6 +30,8 @@ ENV UPSTASH_REDIS_REST_TOKEN="dummy_token"
 ENV HANKO_API_KEY="dummy_key"
 ENV NEXT_PUBLIC_HANKO_TENANT_ID="dummy_id"
 ENV OPENAI_API_KEY="dummy_key"
+ENV SLACK_CLIENT_ID="dummy_id"
+ENV SLACK_CLIENT_SECRET="dummy_secret"
 
 RUN npm run build
 
