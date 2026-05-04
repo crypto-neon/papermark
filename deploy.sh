@@ -71,28 +71,39 @@ seed().finally(() => prisma.\$disconnect());
 
 kill $PROXY_PID
 
-# --- 7. BUILD & DEPLOY ---
-echo "Deploying to Cloud Run. Building container (this takes 3-5 mins)..."
+# --- 7. BUILD & DEPLOY TO CLOUD RUN ---
+IMAGE_URL="gcr.io/$GCP_PROJECT/papermark:latest"
 
-# We add the Prisma URLs to --set-build-env-vars so 'next build' doesn't fail
+echo "=========================================="
+echo "Phase 7A: Building the Docker Image..."
+echo "=========================================="
+# We build explicitly first to bypass the gcloud polling timeout
+if gcloud builds submit --tag $IMAGE_URL .; then
+  echo "✅ Build Successful!"
+else
+  echo "❌ Build Failed. Check the terminal output above."
+  exit 1
+fi
+
+echo "=========================================="
+echo "Phase 7B: Deploying to Cloud Run ($SERVICE_NAME)..."
+echo "=========================================="
+# Now we deploy the finished image, no 'source' building required
 if gcloud run deploy $SERVICE_NAME \
+  --image $IMAGE_URL \
   --project $GCP_PROJECT \
   --region $REGION \
-  --source . \
-  --verbosity=debug \
   --allow-unauthenticated \
   --add-cloudsql-instances $CLOUD_SQL_INSTANCE \
   --set-secrets "/secrets/dataroom=dataroom:latest" \
-  --set-build-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,POSTGRES_PRISMA_URL=$POSTGRES_PRISMA_URL,POSTGRES_PRISMA_URL_NON_POOLING=$POSTGRES_PRISMA_URL_NON_POOLING" \
   --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,POSTGRES_PRISMA_URL=$POSTGRES_PRISMA_URL,POSTGRES_PRISMA_URL_NON_POOLING=$POSTGRES_PRISMA_URL_NON_POOLING"; then
   
   echo "=========================================="
-  echo "✅ DEPLOYMENT COMPLETE!"
+  echo "✅ DEPLOYMENT COMPLETE SUCCESSFULLY!"
   echo "=========================================="
 else
   echo "=========================================="
-  echo "❌ BUILD FAILED."
-  echo "Check the 'Logs are available at' link above to see the specific code error."
+  echo "❌ ERROR: Cloud Run Deployment Failed."
   echo "=========================================="
   exit 1
 fi
