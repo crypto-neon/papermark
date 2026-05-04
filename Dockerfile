@@ -19,9 +19,17 @@ COPY . .
 RUN npx prisma generate
 
 # Build the Next.js app
-# We use dummy variables here to satisfy the build-time check
+# We use dummy variables here to satisfy the build-time checks
 ENV POSTGRES_PRISMA_URL="postgresql://user:pass@localhost:5432/db"
 ENV POSTGRES_PRISMA_URL_NON_POOLING="postgresql://user:pass@localhost:5432/db"
+
+# Add these new dummy variables to bypass the Upstash and Hanko checks
+ENV QSTASH_TOKEN="dummy_token"
+ENV UPSTASH_REDIS_REST_URL="https://dummy.upstash.io"
+ENV UPSTASH_REDIS_REST_TOKEN="dummy_token"
+ENV HANKO_API_KEY="dummy_key"
+ENV NEXT_PUBLIC_HANKO_TENANT_ID="dummy_id"
+
 RUN npm run build
 
 ENV NODE_ENV=production
