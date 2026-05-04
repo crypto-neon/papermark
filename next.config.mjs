@@ -127,6 +127,7 @@ const nextConfig = {
         has: [
           {
             type: "host",
+            value: process.env.NEXT_PUBLIC_WEBHOOK_BASE_HOST || ".*",
           },
         ],
         headers: [
