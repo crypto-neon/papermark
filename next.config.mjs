@@ -10,7 +10,7 @@ const nextConfig = {
   skipTrailingSlashRedirect: true,
   assetPrefix:
     process.env.NODE_ENV === "production" &&
-    process.env.VERCEL_ENV === "production"
+      process.env.VERCEL_ENV === "production"
       ? process.env.NEXT_PUBLIC_BASE_URL
       : undefined,
   async redirects() {
@@ -127,7 +127,6 @@ const nextConfig = {
         has: [
           {
             type: "host",
-            value: process.env.NEXT_PUBLIC_WEBHOOK_BASE_HOST,
           },
         ],
         headers: [
