@@ -97,17 +97,27 @@ IMAGE_URL="gcr.io/$GCP_PROJECT/papermark:latest"
 CLOUD_RUN_DB_URL="postgresql://$DB_USER:$DB_PASS@localhost/papermark?host=/cloudsql/$CLOUD_SQL_INSTANCE"
 
 echo "=========================================="
-echo "Phase 7A: Building the Docker Image..."
+echo "Phase 7A: Preparing Environment & Building..."
 echo "=========================================="
-# We pass the identity variables as build-args so Next.js bakes them correctly
-if gcloud builds submit --tag $IMAGE_URL \
-  --build-arg NEXT_PUBLIC_APP_BASE_HOST=$NEXT_PUBLIC_APP_BASE_HOST \
-  --build-arg NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
-  --build-arg NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL \
-  .; then
+
+# Create a temporary production env file for Next.js to bake in
+# This ensures variables are available during 'npm run build' inside Docker
+cat <<EOF > .env.production
+NEXT_PUBLIC_APP_BASE_HOST=$NEXT_PUBLIC_APP_BASE_HOST
+NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL
+EOF
+
+# Crucial: Ensure gcloud doesn't ignore our new env file
+# We temporarily remove it from .gcloudignore if it exists
+[ -f .gcloudignore ] && sed -i '/.env.production/d' .gcloudignore
+
+if gcloud builds submit --tag $IMAGE_URL .; then
   echo "✅ Build Successful!"
+  rm .env.production # Clean up
 else
-  echo "❌ Build Failed. Check the terminal output above."
+  echo "❌ Build Failed."
+  rm .env.production
   exit 1
 fi
 
