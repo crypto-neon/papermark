@@ -158,7 +158,7 @@ Copy `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SI
     ```bash
     git clone [https://github.com/crypto-neon/papermark.git](https://github.com/crypto-neon/papermark.git) && cd papermark && chmod +x deploy.sh update.sh && ./deploy.sh
     ```
-    
+
 ---
 
 ## Phase 6: Future Updates
@@ -184,27 +184,98 @@ When you want to pull the latest code from GitHub and deploy it:
 ---
 
 ## Phase 7: Connecting Your Subdomain
-Google Cloud Run makes it very easy to attach your custom domain and will automatically generate a free SSL (HTTPS) certificate for you.
 
-1. **Start the Mapping:**
-   * Go to **Cloud Run** in the GCP Console.
-   * Click on your `papermark` service.
-   * Near the top, click the **Integrations** tab, then click **Add Integration**.
-   * Select **Custom Domains - Google Cloud Load Balancing** (or if you see a classic **Manage Custom Domains** option at the very top of the Cloud Run page, click that—it's faster).
+Google Cloud offers several methods to map a custom domain to Cloud Run:
+*   **Cloud Run Domain Mappings** (Free, but region-restricted)
+*   **Firebase Hosting**
+*   **Global External Application Load Balancer** (Enterprise-grade, allows multiple apps to share one IP)
 
-2. **Configure the Domain:**
-   * Select the `papermark` service.
-   * If your domain isn't verified in Google yet, it will ask you to verify ownership via Google Webmaster Central (a quick DNS TXT record).
-   * Enter your chosen subdomain (e.g., `documents.yourcompany.com`).
-   * Click **Submit** or **Continue**.
+Below are the steps for the **Load Balancer** method. Choose Option A if starting from scratch, or Option B if you already have a Load Balancer running.
 
-3. **Update your DNS:**
-   * Google will now display a specific **DNS Record** (usually a `CNAME` pointing to `ghs.googlehosted.com`, or an `A` record with an IP address).
-   * Open a new tab and go to your domain registrar (e.g., Cloudflare, GoDaddy, Namecheap).
-   * Add a new DNS record matching exactly what Google provided.
+---
 
-4. **Wait for the Magic:**
-   * It can take anywhere from 15 minutes to an hour for the internet to recognize the new domain and for Google to issue your SSL certificate. 
+### Option A: Create a NEW Load Balancer
+
+**Step 1: Reserve a Static IP Address**
+1. Go to **VPC Network > IP addresses**.
+2. Click **Reserve External Static IP Address**.
+3. **Name:** `papermark-ip` | **Network Tier:** Premium | **IP Version:** IPv4 | **Type:** Global.
+4. Click **Reserve** and note the IP address.
+
+**Step 2: Start Load Balancer Setup**
+1. Go to **Network Services > Load balancing**.
+2. Click **Create Load Balancer** > **Application Load Balancer (HTTP/HTTPS)** > **Public facing (external)** > **Global**.
+3. Name the load balancer `papermark-lb`.
+
+**Step 3: Frontend Configuration**
+1. Click into **Frontend configuration**.
+2. **Protocol:** HTTPS (includes HTTP/2).
+3. **IP address:** Select the `papermark-ip` you just reserved.
+4. **Certificate:** Click **Create a new certificate**. 
+5. Name it `papermark-cert`, choose **Create Google-managed certificate**, enter your exact subdomain (e.g., `subdomain.yourcompany.com`), and click **Create**.
+
+**Step 4: Backend Configuration & Inline NEG**
+1. Click into **Backend configuration**.
+2. In the dropdown, select **Create a backend service**.
+3. **Name:** `papermark-backend`.
+4. **Backend type:** Serverless network endpoint group (NEG).
+5. Under the "Backends" section, click the **New backend** dropdown and select **Create Serverless network endpoint group**. 
+   * A side panel will pop up. Name it `papermark-neg`, select your region (`europe-west3`), and choose the `papermark` Cloud Run service. Click **Create**.
+6. Click **Create** again at the bottom to finish the backend service.
+
+**Step 5: Routing & Finalize**
+1. Click into **Routing rules**.
+2. Leave the default setting (it will automatically route all traffic to `papermark-backend`).
+3. Click **Create** at the bottom left to launch the entire Load Balancer.
+
+---
+
+### Option B: Add to an EXISTING Load Balancer
+
+If you already have a Load Balancer running, you can attach Papermark to it to share the IP address.
+
+**Step 1: Create the Backend & NEG Inline**
+1. Go to **Network Services > Load balancing** and click your existing Load Balancer to edit it.
+2. Click into **Backend configuration**.
+3. In the dropdown, select **Create a backend service**.
+4. **Name:** `papermark-backend`
+5. **Backend type:** Serverless network endpoint group (NEG).
+6. Under the "Backends" section, click the **New backend** dropdown and select **Create Serverless network endpoint group**. 
+   * A side panel will pop up. Name it `papermark-neg`, select your region, and choose the `papermark` Cloud Run service. Click **Create**.
+7. Click **Create** again to finish making the backend service.
+
+**Step 2: Update the Load Balancer Routing**
+1. Still editing the Load Balancer, click into **Routing rules**.
+2. Change the mode to **Advanced host and path rule**.
+3. Add a new **Host rule**:
+   * **Host:** `subdomain.yourcompany.com` (your exact Papermark domain).
+   * **Path matcher:** Create a new path matcher and point it to the `papermark-backend`.
+4. Click **Update** to apply the changes to your Load Balancer.
+
+**Step 3: Update Frontend Certificate (If needed)**
+1. If your existing SSL certificate doesn't cover `subdomain.yourcompany.com`, edit the Load Balancer's **Frontend configuration**.
+2. Click your HTTPS frontend, and under **Certificate**, click **Create a new certificate**.
+3. Select **Create Google-managed certificate** and add `subdomain.yourcompany.com`. Click **Save** and **Update**.
+
+---
+
+### Final Step: Update your DNS
+1. Open a new tab and go to your domain registrar (e.g., Cloudflare, GoDaddy).
+2. Create an **A Record** for your subdomain (e.g., `dataroom`).
+3. Point it to the static IP address of your Load Balancer.
+4. Wait 15-45 minutes for the DNS to propagate and the Google-managed SSL certificate to activate.
+
+---
+
+## (Optional) HTTP to HTTPS Redirect
+
+This command upgrades unsecure Port **80** traffic to **HTTPS** to prevent "Connection Refused" errors when the protocol is omitted in the browser.
+
+> **Note:** Replace `[IP_RESOURCE_NAME]` with your actual static IP resource name (e.g., `papermark-ip`).
+
+```bash
+printf "name: lb-http-redirect\ndefaultUrlRedirect:\n  redirectResponseCode: MOVED_PERMANENTLY_DEFAULT\n  httpsRedirect: true" > r.yaml && gcloud compute url-maps import lb-http-redirect --source=r.yaml --global --quiet && gcloud compute target-http-proxies create lb-http-proxy --url-map=lb-http-redirect && gcloud compute forwarding-rules create lb-http-rule --load-balancing-scheme=EXTERNAL --address=[IP_RESOURCE_NAME] --global --target-http-proxy=lb-http-proxy --ports=80
+```
 
 ---
 

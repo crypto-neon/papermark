@@ -99,8 +99,12 @@ CLOUD_RUN_DB_URL="postgresql://$DB_USER:$DB_PASS@localhost/papermark?host=/cloud
 echo "=========================================="
 echo "Phase 7A: Building the Docker Image..."
 echo "=========================================="
-# We build explicitly first to bypass the gcloud polling timeout
-if gcloud builds submit --tag $IMAGE_URL .; then
+# We pass the identity variables as build-args so Next.js bakes them correctly
+if gcloud builds submit --tag $IMAGE_URL \
+  --build-arg NEXT_PUBLIC_APP_BASE_HOST=$NEXT_PUBLIC_APP_BASE_HOST \
+  --build-arg NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+  --build-arg NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL \
+  .; then
   echo "✅ Build Successful!"
 else
   echo "❌ Build Failed. Check the terminal output above."
@@ -118,7 +122,7 @@ if gcloud run deploy $SERVICE_NAME \
   --allow-unauthenticated \
   --add-cloudsql-instances $CLOUD_SQL_INSTANCE \
   --set-secrets "/secrets/dataroom=dataroom:latest" \
-  --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,POSTGRES_PRISMA_URL=$CLOUD_RUN_DB_URL,POSTGRES_PRISMA_URL_NON_POOLING=$CLOUD_RUN_DB_URL"; then
+  --set-env-vars "NEXT_PUBLIC_APP_BASE_HOST=$NEXT_PUBLIC_APP_BASE_HOST,NEXTAUTH_URL=$NEXTAUTH_URL,NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,POSTGRES_PRISMA_URL=$CLOUD_RUN_DB_URL,POSTGRES_PRISMA_URL_NON_POOLING=$CLOUD_RUN_DB_URL"; then
   
   echo "=========================================="
   echo "✅ DEPLOYMENT COMPLETE SUCCESSFULLY!"
