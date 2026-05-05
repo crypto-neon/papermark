@@ -23,15 +23,38 @@ npx prisma db push
 
 kill $PROXY_PID
 
-echo "Updating Cloud Run service..."
+# --- BUILD & DEPLOY ---
+IMAGE_URL="gcr.io/$GCP_PROJECT/papermark:latest"
+CLOUD_RUN_DB_URL="postgresql://$DB_USER:$DB_PASS@localhost/papermark?host=/cloudsql/$CLOUD_SQL_INSTANCE"
+
+echo "=========================================="
+echo "Phase 1: Building the Updated Image..."
+echo "=========================================="
+if gcloud builds submit --tag $IMAGE_URL .; then
+  echo "✅ Build Successful!"
+else
+  echo "❌ Build Failed. Check the terminal output above."
+  exit 1
+fi
+
+echo "=========================================="
+echo "Phase 2: Updating Cloud Run service..."
+echo "=========================================="
 if gcloud run deploy $SERVICE_NAME \
+  --image $IMAGE_URL \
   --project $GCP_PROJECT \
   --region $REGION \
-  --source . \
-  --set-build-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,POSTGRES_PRISMA_URL=$POSTGRES_PRISMA_URL,POSTGRES_PRISMA_URL_NON_POOLING=$POSTGRES_PRISMA_URL_NON_POOLING" \
-  --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,POSTGRES_PRISMA_URL=$POSTGRES_PRISMA_URL,POSTGRES_PRISMA_URL_NON_POOLING=$POSTGRES_PRISMA_URL_NON_POOLING"; then
+  --allow-unauthenticated \
+  --add-cloudsql-instances $CLOUD_SQL_INSTANCE \
+  --set-secrets "/secrets/dataroom=dataroom:latest" \
+  --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,POSTGRES_PRISMA_URL=$CLOUD_RUN_DB_URL,POSTGRES_PRISMA_URL_NON_POOLING=$CLOUD_RUN_DB_URL"; then
+  
+  echo "=========================================="
   echo "✅ UPDATE SUCCESSFUL!"
+  echo "=========================================="
 else
-  echo "❌ UPDATE FAILED. Check build logs above."
+  echo "=========================================="
+  echo "❌ UPDATE FAILED. Check logs above."
+  echo "=========================================="
   exit 1
 fi

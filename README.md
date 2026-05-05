@@ -1,3 +1,11 @@
+> **🚀 GCP Cloud Run Version**
+> 
+> Hosting, Database, and Storage replaces Vercel.
+> 
+> **[👉 Follow instructions here: DEPLOY-GCP.md](./DEPLOY-GCP.md)**
+
+---
+
 <div align="center">
   <h1 align="center">Papermark</h1>
   <h3>The open-source DocSend alternative.</h3>

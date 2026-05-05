@@ -138,20 +138,27 @@ Copy `QSTASH_URL`, `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SI
 
 ---
 
-## Phase 4: Storing Secrets in GCP
+## Phase 4: Storing Secrets & Granting Permissions
 1.  **Create Secret:** Search for **Secret Manager**, create a secret named `dataroom`.
 2.  **Value:** Paste your entire assembled configuration.
-3.  **Grant Access:** In the secret's **Permissions** tab, add your **Compute Engine default service account** (`...-compute@developer.gserviceaccount.com`) as a **Secret Manager Secret Accessor**.
+3.  **Grant Access:** In the secret's **Permissions** tab, click **Grant Access**. Add your **Compute Engine default service account** (it looks like `123456789-compute@developer.gserviceaccount.com`) and assign it the **Secret Manager Secret Accessor** role.
+4.  **Crucial Build Permissions:** To ensure Google Cloud can actually build and save your application, go to **IAM & Admin > IAM**. Find that exact same Compute Engine default service account, click the pencil icon to edit, and add these two additional roles:
+    * **Logs Writer** (Allows you to see the build logs)
+    * **Artifact Registry Admin** (Allows GCP to save your compiled Docker container)
 
 ---
 
 ## Phase 5: The First Launch (Cloud Shell)
 1.  **Open Cloud Shell:** Click the `>_` icon in the GCP top bar.
-2.  **Deploy in one step:** Copy and paste this single line into the Cloud Shell and hit Enter. It will download the code, set the permissions, and start the deployment automatically:
+2.  **Activate Node 22:** Google Cloud Shell sometimes defaults to older versions of Node.js. Papermark requires v22. Run this command first to ensure your environment is ready:
     ```bash
-    git clone https://github.com/crypto-neon/papermark.git && cd papermark && chmod +x deploy.sh update.sh && ./deploy.sh
+    nvm install 22 && nvm use 22
     ```
-
+3.  **Deploy in one step:** Copy and paste this single line into the Cloud Shell and hit Enter. It will download the code, set the permissions, and start the deployment automatically:
+    ```bash
+    git clone [https://github.com/crypto-neon/papermark.git](https://github.com/crypto-neon/papermark.git) && cd papermark && chmod +x deploy.sh update.sh && ./deploy.sh
+    ```
+    
 ---
 
 ## Phase 6: Future Updates

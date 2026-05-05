@@ -6,23 +6,41 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-echo "=========================================="
-echo "   Papermark Deployment Setup"
-echo "=========================================="
-echo "⚠️  IMPORTANT: The email below is for your"
-echo "Papermark Dataroom login, NOT Google Cloud."
-read -p "Enter the Admin email for your Dataroom: " ADMIN_EMAIL
-
-if [ -z "$ADMIN_EMAIL" ]; then
-  echo "Error: Admin email cannot be empty. Deployment aborted."
-  exit 1
+# 1. Load local .env file first (if it exists) to catch ADMIN_EMAIL
+if [ -f ".env" ]; then
+  set -a
+  source .env
+  set +a
 fi
 
-echo ""
+# 2. Fetch GCP Secrets so we have all variables BEFORE checking for the email
 echo "Fetching configuration from GCP Secret Manager..."
 set -a
 source <(gcloud secrets versions access latest --secret="dataroom")
 set +a
+
+echo "=========================================="
+echo "   Papermark Deployment Setup"
+echo "=========================================="
+
+# 3. Email Check Logic
+if [ -z "$ADMIN_EMAIL" ]; then
+  echo "⚠️  IMPORTANT: The email below is for your"
+  echo "Papermark Dataroom login, NOT Google Cloud."
+  read -p "Enter the Admin email for your Dataroom: " ADMIN_EMAIL
+
+  if [ -z "$ADMIN_EMAIL" ]; then
+    echo "Error: Admin email cannot be empty. Deployment aborted."
+    exit 1
+  fi
+
+  echo ""
+  echo "💡 Tip: To skip this prompt in the future, add this line to your .env file or GCP Secret payload:"
+  echo "ADMIN_EMAIL=\"$ADMIN_EMAIL\""
+  echo ""
+else
+  echo "✅ Admin email loaded automatically: $ADMIN_EMAIL"
+fi
 
 # --- 1. INSTALL DEPENDENCIES ---
 echo "Installing local dependencies..."
@@ -43,7 +61,8 @@ PROXY_PID=$!
 sleep 5 
 
 # --- 4. INITIALIZE SCHEMA ---
-echo "Pushing modular schema to Cloud SQL..."
+echo "Pushing modular schema to Cloud SQL via local proxy tunnel..."
+# We use the local proxy URLs specifically for these build steps
 export DATABASE_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
 export POSTGRES_PRISMA_URL="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
 export POSTGRES_PRISMA_URL_NON_POOLING="postgresql://$DB_USER:$DB_PASS@localhost:5432/papermark"
@@ -74,6 +93,9 @@ kill $PROXY_PID
 # --- 7. BUILD & DEPLOY TO CLOUD RUN ---
 IMAGE_URL="gcr.io/$GCP_PROJECT/papermark:latest"
 
+# Construct the strict Unix Socket URL required by Cloud Run in production
+CLOUD_RUN_DB_URL="postgresql://$DB_USER:$DB_PASS@localhost/papermark?host=/cloudsql/$CLOUD_SQL_INSTANCE"
+
 echo "=========================================="
 echo "Phase 7A: Building the Docker Image..."
 echo "=========================================="
@@ -88,7 +110,7 @@ fi
 echo "=========================================="
 echo "Phase 7B: Deploying to Cloud Run ($SERVICE_NAME)..."
 echo "=========================================="
-# Now we deploy the finished image, no 'source' building required
+# Deploy using the strictly formatted CLOUD_RUN_DB_URL for Prisma
 if gcloud run deploy $SERVICE_NAME \
   --image $IMAGE_URL \
   --project $GCP_PROJECT \
@@ -96,7 +118,7 @@ if gcloud run deploy $SERVICE_NAME \
   --allow-unauthenticated \
   --add-cloudsql-instances $CLOUD_SQL_INSTANCE \
   --set-secrets "/secrets/dataroom=dataroom:latest" \
-  --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,POSTGRES_PRISMA_URL=$POSTGRES_PRISMA_URL,POSTGRES_PRISMA_URL_NON_POOLING=$POSTGRES_PRISMA_URL_NON_POOLING"; then
+  --set-env-vars "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,POSTGRES_PRISMA_URL=$CLOUD_RUN_DB_URL,POSTGRES_PRISMA_URL_NON_POOLING=$CLOUD_RUN_DB_URL"; then
   
   echo "=========================================="
   echo "✅ DEPLOYMENT COMPLETE SUCCESSFULLY!"
