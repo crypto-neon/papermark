@@ -64,4 +64,4 @@ ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["sh", "-c", "if [ -f /secrets/dataroom ]; then set -a && . /secrets/dataroom && set +a; fi && npm start"]
