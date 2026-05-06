@@ -20,12 +20,16 @@ function isAnalyticsPath(path: string) {
 }
 
 function isCustomDomain(host: string) {
+
+  const appBaseHost = process.env.NEXT_PUBLIC_APP_BASE_HOST || "papermark.io";
+
   return (
     (process.env.NODE_ENV === "development" &&
       (host?.includes(".local") || host?.includes("papermark.dev"))) ||
     (process.env.NODE_ENV !== "development" &&
       !(
         host?.includes("localhost") ||
+        host?.includes(appBaseHost) ||
         host?.includes("papermark.io") ||
         host?.includes("papermark.com") ||
         host?.endsWith(".vercel.app")
