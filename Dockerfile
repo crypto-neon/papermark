@@ -16,21 +16,11 @@ RUN npm install --ignore-scripts
 COPY . .
 
 # --- BUILD ARGUMENTS ---
-# These allow gcloud builds submit to pass in the real domain values
-ARG NEXT_PUBLIC_APP_BASE_HOST
-ARG NEXT_PUBLIC_APP_URL
-ARG NEXT_PUBLIC_BASE_URL
 
 # --- DUMMY VARIABLES TO BYPASS NEXT.JS BUILD CHECKS ---
 # Database (Required for Prisma to compile)
 ENV POSTGRES_PRISMA_URL="postgresql://user:pass@localhost:5432/db"
 ENV POSTGRES_PRISMA_URL_NON_POOLING="postgresql://user:pass@localhost:5432/db"
-
-# Map the Build ARGs to ENVs so they are available to 'npm run build'
-# This ensures the routing logic is "baked" with the correct domain identity
-ENV NEXT_PUBLIC_APP_BASE_HOST=${NEXT_PUBLIC_APP_BASE_HOST}
-ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
-ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 
 # The hidden variables (Not in their .env.example)
 ENV OPENAI_API_KEY="dummy_openai"
