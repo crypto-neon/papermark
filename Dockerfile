@@ -12,6 +12,9 @@ COPY prisma ./prisma/
 # Install dependencies without running the "postinstall" prisma generate yet
 RUN npm install --ignore-scripts
 
+# Add sharp specifically for the Alpine Linux container
+RUN npm install sharp
+
 # Now copy the rest of the code
 COPY . .
 
