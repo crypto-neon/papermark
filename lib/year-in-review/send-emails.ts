@@ -145,9 +145,9 @@ export async function processEmailQueue() {
 
                   return {
                     email: {
-                      from: process.env.EMAIL_FROM,
-                      to: userTeam.user.email,
-                      replyTo: process.env.RESPONSE_TO,
+                      from: process.env.EMAIL_FROM as string,
+                      to: userTeam.user.email as string,
+                      replyTo: process.env.RESPONSE_TO as string,
                       subject: "2024 in Review: Your Year with Papermark",
                       react,
                       text: plainText,
