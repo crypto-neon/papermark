@@ -16,6 +16,15 @@ RUN npm install --ignore-scripts
 COPY . .
 
 # --- BUILD ARGUMENTS ---
+# Explicitly declare the arguments passed from cloudbuild.yaml
+ARG NEXT_PUBLIC_APP_BASE_HOST
+ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_BASE_URL
+
+# Map them to ENV so Next.js bakes them into the static frontend bundle
+ENV NEXT_PUBLIC_APP_BASE_HOST=$NEXT_PUBLIC_APP_BASE_HOST
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL
 
 # --- DUMMY VARIABLES TO BYPASS NEXT.JS BUILD CHECKS ---
 # Database (Required for Prisma to compile)
