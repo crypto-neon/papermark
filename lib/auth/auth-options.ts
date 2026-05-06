@@ -15,7 +15,7 @@ import { jackson } from "@/lib/jackson";
 import prisma from "@/lib/prisma";
 import { CustomUser } from "@/lib/types";
 
-const VERCEL_DEPLOYMENT = !!process.env.VERCEL_URL;
+const VERCEL_DEPLOYMENT = !!process.env.VERCEL_URL || process.env.NODE_ENV === "production";
 
 function getMainDomainUrl(): string {
   if (process.env.NODE_ENV === "development") {
@@ -25,6 +25,7 @@ function getMainDomainUrl(): string {
 }
 
 export const authOptions: NextAuthOptions = {
+  trustHost: true,
   pages: {
     error: "/login",
   },
@@ -187,7 +188,7 @@ export const authOptions: NextAuthOptions = {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        domain: VERCEL_DEPLOYMENT ? ".papermark.com" : undefined,
+        domain: undefined,
         secure: VERCEL_DEPLOYMENT,
       },
     },
