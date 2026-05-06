@@ -45,14 +45,14 @@ export const sendEmail = async ({
   const html = await render(react);
   const plainText = toPlainText(html);
 
-  const fromAddress = from ?? process.env.EMAIL_FROM;
+  const fromAddress = (from ?? process.env.EMAIL_FROM) as string;
 
   try {
     const { data, error } = await resend.emails.send({
       from: fromAddress,
       to: test ? "delivered@resend.dev" : to,
       cc: cc,
-      replyTo: process.env.RESPONSE_TO || replyTo,
+      replyTo: (process.env.RESPONSE_TO || replyTo) as string,
       subject,
       react,
       scheduledAt,
