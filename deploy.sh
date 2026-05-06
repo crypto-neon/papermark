@@ -111,22 +111,17 @@ fi
 echo "=========================================="
 echo "Phase 7B: Deploying to Cloud Run ($SERVICE_NAME)..."
 echo "=========================================="
-# Deploy using the strictly formatted CLOUD_RUN_DB_URL for Prisma
+
 if gcloud run deploy $SERVICE_NAME \
   --image $IMAGE_URL \
   --project $GCP_PROJECT \
   --region $REGION \
   --allow-unauthenticated \
   --add-cloudsql-instances $CLOUD_SQL_INSTANCE \
-  --set-secrets "/secrets/dataroom=dataroom:latest" \
-  --set-env-vars "NEXT_PUBLIC_APP_BASE_HOST=$NEXT_PUBLIC_APP_BASE_HOST,NEXTAUTH_URL=$NEXTAUTH_URL,NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL,POSTGRES_PRISMA_URL=$CLOUD_RUN_DB_URL,POSTGRES_PRISMA_URL_NON_POOLING=$CLOUD_RUN_DB_URL"; then
+  --set-secrets "/secrets/dataroom=dataroom:latest"; then
   
-  echo "=========================================="
-  echo "✅ DEPLOYMENT COMPLETE SUCCESSFULLY!"
-  echo "=========================================="
+  echo "✅ DEPLOYMENT COMPLETE!"
 else
-  echo "=========================================="
-  echo "❌ ERROR: Cloud Run Deployment Failed."
-  echo "=========================================="
+  echo "❌ Cloud Run Deployment Failed."
   exit 1
 fi

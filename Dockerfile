@@ -57,11 +57,11 @@ ENV NEXT_PRIVATE_VERIFICATION_SECRET="dummy_secret"
 # Manually generate the client
 RUN npx prisma generate
 
-# Build the app (now using the real domain identity for routing)
 RUN npm run build
 
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
+# BULK INGESTION: This reads the mounted secret file and exports all variables right before booting
 CMD ["sh", "-c", "if [ -f /secrets/dataroom ]; then set -a && . /secrets/dataroom && set +a; fi && npm start"]
