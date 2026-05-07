@@ -15,8 +15,6 @@ import { jackson } from "@/lib/jackson";
 import prisma from "@/lib/prisma";
 import { CustomUser } from "@/lib/types";
 
-const VERCEL_DEPLOYMENT = !!process.env.VERCEL_URL || process.env.NODE_ENV === "production";
-
 function getMainDomainUrl(): string {
   if (process.env.NODE_ENV === "development") {
     return process.env.NEXTAUTH_URL || "http://localhost:3000";
@@ -181,18 +179,6 @@ export const authOptions: NextAuthOptions = {
   ],
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
-  cookies: {
-    sessionToken: {
-      name: `${VERCEL_DEPLOYMENT ? "__Secure-" : ""}next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        domain: undefined,
-        secure: VERCEL_DEPLOYMENT,
-      },
-    },
-  },
   callbacks: {
     jwt: async (params) => {
       const { token, user, trigger, account } = params;
