@@ -23,7 +23,6 @@ function getMainDomainUrl(): string {
 }
 
 export const authOptions: NextAuthOptions = {
-  trustHost: true,
   pages: {
     error: "/login",
   },
