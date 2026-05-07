@@ -39,6 +39,7 @@ export default async function AppMiddleware(req: NextRequest) {
   const token = (await getToken({
     req,
     secret: process.env.NEXTAUTH_SECRET,
+    secureCookie: process.env.NODE_ENV === "production",
   })) as {
     email?: string;
     user?: {
